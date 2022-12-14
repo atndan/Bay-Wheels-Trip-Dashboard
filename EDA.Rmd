@@ -1,0 +1,149 @@
+---
+title: "baywheels-data analysis"
+author: "Dan Hoang_cu2107"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggmap)
+library(skimr)
+library(lubridate)
+library(forcats)
+library(patchwork)
+library(flexdashboard)
+```
+
+```{r}
+ggmap::register_google(key = "AIzaSyCGPPRgTcFbQUi4LNVc-TVZaaE17jzDa5M")
+```
+
+
+```{r}
+df <- read_csv("data/202210-baywheels-tripdata.csv")
+head(df)
+```
+
+```{r}
+glimpse(df)
+```
+
+
+```{r}
+df %>% select(start_station_id,start_station_name, start_lat,start_lng) %>%
+  arrange(start_station_id) %>%
+  distinct() %>%
+  head() 
+```
+
+```{r}
+df1 <- df %>% 
+  group_by(rideable_type)%>%
+  summarize( count = n())
+ggplot(df1, aes(x = rideable_type, y = count)) + 
+  geom_col(alpha = 0.6, fill="#69b3a2")+ 
+  ggtitle("Rideable Type") + ylab(" ") + xlab(" ") +
+  theme(plot.title = element_text(size = 10))
+```
+
+```{r}
+df2 <- df %>% 
+  group_by(member_casual)%>%
+  summarize( count = n())
+ggplot(df2, aes(x = member_casual, y = count)) + 
+  geom_col(alpha = 0.6, fill="#69b3a2")+ 
+  ggtitle("Member Casual") + ylab(" ") + xlab(" ") +
+  theme(plot.title = element_text(size = 10))
+```
+
+```{r}
+#time series
+t <- ymd_hms(df$started_at )
+df_time <- tibble(
+  date = date(t),
+  month = month(t, label = T),
+  wday = wday(t, label = T),
+  mday = mday(t),
+  hours = hour(t)
+)
+head(df_time)
+```
+
+```{r  fig.height = 6, fig.width = 8}
+df3 <- df_time %>% 
+  group_by(hours)%>%
+  summarize( count = n())
+df4 <- df_time %>% 
+  group_by(wday)%>%
+  summarize( count = n())
+
+p1 <- ggplot(df3, aes(x = hours, y = count)) + 
+  geom_col(alpha = 0.6, fill="#69b3a2")+ 
+  ggtitle("Hours") + ylab(" ") + xlab(" ")+
+  theme(plot.title = element_text(size = 10))
+p2 <- ggplot(df4, aes(x = wday, y = count)) + 
+  geom_col(alpha = 0.6, fill="#69b3a2")+ 
+  ggtitle("Week Day") + ylab(" ") + xlab(" ")+
+  theme(plot.title = element_text(size = 10))
+p1 + p2
+```
+
+
+```{r  fig.height = 4, fig.width = 10}
+t1 <- ymd(df$started_at )
+df5 <- tibble(
+  date = date(t))  %>%
+  group_by(date)%>%
+  summarize( count = n())
+
+lbls <- paste0(month.abb[month(df5$date)], " ", lubridate::mday(df5$date) )
+brks <- df5$date 
+
+p <- ggplot(df5, aes(x=date, y=count)) +geom_line(color="#69b3a2")  + 
+  geom_point(color = "#69b3a2") +
+  scale_x_date(labels = lbls,breaks = brks) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1, size = 6), 
+        axis.text.y = element_text(size = 6),
+        plot.title = element_text(size = 10),
+        panel.grid.minor = element_blank(),
+        legend.position = "none") +
+  ggtitle("October 2022 Volume") + ylab(" ") + xlab(" ")
+p
+```
+
+
+```{r}
+ggplot(df, aes(x = start_lng, y =  start_lat)) +
+  geom_point()
+```
+
+
+```{r}
+ggmap_center <- ggmap::get_googlemap(center = c(lon = -122.25, lat = 37.5), 
+                                     zoom = 10,
+                                     maptype = 'roadmap')
+ggmap(ggmap_center) +
+  geom_point(data = df, aes(x = start_lng, y =  start_lat), size = 0.5,  color="#1B4F72", alpha = 0.4,) 
+```
+
+```{r}
+ggmap_center <- ggmap::get_googlemap(center = c(lon = -121.9, lat = 37.31), 
+                                     zoom = 11,
+                                     maptype = 'roadmap')
+ggmap(ggmap_center) +
+  geom_point(data = df, aes(x = start_lng, y =  start_lat), size = 0.5,  color="#1B4F72", alpha = 0.6,) 
+
+```
+
+```{r}
+ggmap_center <- ggmap::get_googlemap(center = c(lon = -122.44, lat = 37.76), 
+                                     zoom =12,
+                                     maptype = 'roadmap')
+ggmap(ggmap_center) +
+  geom_point(data = df, aes(x = start_lng, y =  start_lat), size = 0.2,  color="#1B4F72", alpha = 0.3,) 
+```
+
+
+

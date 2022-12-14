@@ -1,0 +1,132 @@
+---
+title: "Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+
+Page 1 {data-orientation=rows}
+===================================== 
+
+Row
+-----------------------------------------------------------------------
+
+### This dashboard is updating trend from Bay Wheels in latest data (October 2022). Trip volume are pretty equally distributed in October.
+
+```{r fig.height = 4, fig.width = 17}
+library(tidyverse)
+library(ggmap)
+library(skimr)
+library(lubridate)
+library(forcats)
+library(patchwork)
+ggmap::register_google(key = "AIzaSyCGPPRgTcFbQUi4LNVc-TVZaaE17jzDa5M")
+df <- read_csv("data/202210-baywheels-tripdata.csv")
+t <- ymd_hms(df$started_at )
+df_time <- tibble(
+  date = date(t),
+  month = month(t, label = T),
+  wday = wday(t, label = T),
+  mday = mday(t),
+  hours = hour(t)
+)
+df3 <- df_time %>% 
+  group_by(hours)%>%
+  summarize( count = n())
+df4 <- df_time %>% 
+  group_by(wday)%>%
+  summarize( count = n())
+
+p1 <- ggplot(df3, aes(x = hours, y = count)) + 
+  geom_col(alpha = 0.6, fill="#69b3a2")+ 
+  ggtitle("Trips Volume by Hours") + ylab(" ") + xlab(" ")+
+  theme(plot.title = element_text(size = 10))
+p2 <- ggplot(df4, aes(x = wday, y = count)) + 
+  geom_col(alpha = 0.6, fill="#69b3a2")+ 
+  ggtitle("Trips Volume by Week Days") + ylab(" ") + xlab(" ")+
+  theme(plot.title = element_text(size = 10))
+
+
+t1 <- ymd(df$started_at )
+df5 <- tibble(
+  date = date(t))  %>%
+  group_by(date)%>%
+  summarize( count = n())
+
+lbls <- paste0(month.abb[month(df5$date)], " ", lubridate::mday(df5$date) )
+brks <- df5$date 
+
+p <- ggplot(df5, aes(x=date, y=count)) +geom_line(color="#69b3a2")  + 
+  geom_point(color = "#69b3a2") +
+  scale_x_date(labels = lbls,breaks = brks) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=1, size = 6), 
+        axis.text.y = element_text(size = 6),
+        plot.title = element_text(size = 10),
+        panel.grid.minor = element_blank(),
+        legend.position = "none") + ylab(" ") + xlab(" ")
+p 
+```
+
+Row 
+-----------------------------------------------------------------------
+
+###  Volume seem to be equally among days in a week, this can be interpreted that people are get used to using the bike service daily.
+
+```{r fig.height = 5, fig.width = 8}
+p2
+```
+
+### There is high volume at around 5pm every day, which mean many people use Bay Wheels for commuting.
+
+```{r fig.height = 5, fig.width = 8}
+p1
+```
+
+Page 2 {data-orientation=columns}
+===================================== 
+
+Bikes are used mostly in San Francisco, Oakland, and San Jose.
+
+    
+Column
+-------------------------------------
+    
+### Bay Area
+    
+```{r}
+ggmap_center <- ggmap::get_googlemap(center = c(lon = -122.25, lat = 37.5), 
+                                     zoom = 10,
+                                     maptype = 'roadmap')
+ggmap(ggmap_center) +
+  geom_point(data = df, aes(x = start_lng, y =  start_lat), size = 0.5,  color="#1B4F72", alpha = 0.4,) 
+```
+   
+Column
+-------------------------------------
+   
+### San Jose
+
+```{r }
+ggmap_center <- ggmap::get_googlemap(center = c(lon = -121.9, lat = 37.31), 
+                                     zoom = 11,
+                                     maptype = 'roadmap')
+ggmap(ggmap_center) +
+  geom_point(data = df, aes(x = start_lng, y =  start_lat), size = 0.5,  color="#1B4F72", alpha = 0.6,) 
+```   
+ 
+### San Francisco
+    
+```{r }
+ggmap_center <- ggmap::get_googlemap(center = c(lon = -122.44, lat = 37.76), 
+                                     zoom =12,
+                                     maptype = 'roadmap')
+ggmap(ggmap_center) +
+  geom_point(data = df, aes(x = start_lng, y =  start_lat), size = 0.2,  color="#1B4F72", alpha = 0.3,) 
+```
+
+
